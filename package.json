@@ -1,0 +1,25 @@
+{
+  "name": "dsa-project-2026",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/TEETOTAL001/dsa-project-2026#readme",
+  "bugs": {
+    "url": "https://github.com/TEETOTAL001/dsa-project-2026/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TEETOTAL001/dsa-project-2026.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test",
+    "demo": "node index.js",
+    "benchmark": "node benchmark.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
