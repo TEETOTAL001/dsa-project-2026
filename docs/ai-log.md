@@ -8,3 +8,25 @@ A complete code blueprint spanning `class.js`, `objects.js`, and `index.js`. It 
 
 ## What was wrong or changed:
 Nothing. The baseline application rules compiled immediately on the Windows Command Prompt and produced the exact simulated timeline logs required by the course criteria.
+
+# AI Log: Build 2
+
+## What I asked:
+I requested search, filtering, and sorting functionality for events. The query engine needs to sort matches chronologically by date or price by passing data structures through a custom, stable Merge Sort algorithm. The main structural constraint is that sorting must never change the layout of the original global storage lists.
+
+## What came back:
+A dedicated sorting utility script (`sorting.js`) containing a clean recursive Merge Sort implementation. It copy-isolates input arrays using `.slice()` to guarantee complete data immutability, preserving the arrangement of the core memory table.
+
+## What was wrong or changed:
+Nothing. An automated test script (`index.test.js`) was configured to evaluate the query parameters against standard validation logic, passing 5 out of 5 assertion scenarios successfully on Node's native test runner.
+
+# AI Log: Build 3
+
+## What I asked:
+I requested an Express.js network architecture skeleton to wrap my core domain logic modules into a live REST API backend application server. I needed endpoints configured to accept inbound JSON payload objects to handle program event creation, parse URL context queries to tap into my custom Merge Sort filtering engine, and map user registration actions directly to my ticketing and validation tracker routines.
+
+## What came back:
+A complete web server codebase tracking system written inside `server.js` using the Express framework. It applies body-parsing middleware structures, maps custom route targets (`/api/events`, `/api/events/search`, and `/api/bookings`), and maps application statuses directly to proper network delivery codes (`200 OK`, `201 Created`, `202 Accepted`, and `400 Bad Request`).
+
+## What was wrong or changed:
+An initial boot runtime crashed with an `ERR_MODULE_NOT_FOUND` message because local environment packages weren't downloaded yet. This was fully fixed by initializing the ecosystem through a local terminal execution of `npm install`, which compiled the local tracking folders cleanly.
