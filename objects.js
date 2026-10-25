@@ -80,3 +80,42 @@ export function searchAndSortEvents(criteria) {
 
     return sortedEvents;
 }
+
+// Append at the absolute bottom of objects.js
+
+// Process mock payment confirmation (S07)
+export function handlePaymentProcessing(bookingRefCode) {
+    const booking = bookingsStorage.get(bookingRefCode);
+    if (!booking) return { success: false, reason: 'BOOKING_NOT_FOUND' };
+
+    // Prevent paying for already finalized or broken transactions
+    if (booking.status !== 'CONFIRMED') {
+        return { success: false, reason: 'INVALID_STATE_CHANGE' };
+    }
+
+    booking.status = 'PAID'; // State machine transition
+    return { success: true, booking };
+}
+
+// Cancel an unpaid booking and release seats instantly (S09/S10)
+export function handleBookingCancellation(bookingRefCode) {
+    const booking = bookingsStorage.get(bookingRefCode);
+    if (!booking) return { success: false, reason: 'BOOKING_NOT_FOUND' };
+
+    // Rule boundary: Only unpaid/confirmed bookings can be cancelled at this stage
+    if (booking.status !== 'CONFIRMED') {
+        return { success: false, reason: 'INVALID_STATE_CHANGE' };
+    }
+
+    const event = eventsStorage.get(booking.eventId);
+    if (event) {
+        const tier = event.tiers.get(booking.tierName);
+        if (tier) {
+            // Securely release the seats back into the available pool
+            tier.ticketsSold -= booking.quantity;
+        }
+    }
+
+    booking.status = 'CANCELLED'; // State transition
+    return { success: true, booking };
+}

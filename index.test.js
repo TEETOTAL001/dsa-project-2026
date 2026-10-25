@@ -54,3 +54,25 @@ test('Build 2: Searching and sorting must NEVER mutate original storage list', (
     assert.strictEqual(eventsStorage.size, initialCount);
     assert.ok(eventsStorage.has('E1'));
 });
+
+// Append at the absolute bottom of index.test.js
+import { handlePaymentProcessing, handleBookingCancellation, bookingsStorage } from './objects.js';
+
+test('Build 4: Booking State Machine - Processing payment successful', (t) => {
+    // Inject a dummy mock booking into memory tables
+    const sampleBooking = { referenceCode: 'REF-TEST-PAY', status: 'CONFIRMED', quantity: 2, eventId: 'E1', tierName: 'Regular' };
+    bookingsStorage.set(sampleBooking.referenceCode, sampleBooking);
+
+    const result = handlePaymentProcessing('REF-TEST-PAY');
+    assert.strictEqual(result.success, true);
+    assert.strictEqual(bookingsStorage.get('REF-TEST-PAY').status, 'PAID');
+});
+
+test('Build 4: Booking State Machine - Refuse paying for an already cancelled booking', (t) => {
+    const deadBooking = { referenceCode: 'REF-TEST-DEAD', status: 'CANCELLED', quantity: 1 };
+    bookingsStorage.set(deadBooking.referenceCode, deadBooking);
+
+    const result = handlePaymentProcessing('REF-TEST-DEAD');
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.reason, 'INVALID_STATE_CHANGE'); // State boundary enforcement!
+});

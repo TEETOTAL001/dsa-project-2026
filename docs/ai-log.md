@@ -30,3 +30,15 @@ A complete web server codebase tracking system written inside `server.js` using 
 
 ## What was wrong or changed:
 An initial boot runtime crashed with an `ERR_MODULE_NOT_FOUND` message because local environment packages weren't downloaded yet. This was fully fixed by initializing the ecosystem through a local terminal execution of `npm install`, which compiled the local tracking folders cleanly.
+
+
+# AI Log: Build 4
+
+## What I asked:
+I requested REST API endpoints to support end-to-end booking life cycle transformations—specifically processing mock transaction payments and handling unpaid seat cancellations. The logic must isolate mutations to ensure state transition boundary changes are fully verified by automated unit tests.
+
+## What came back:
+Updated route handlers in `server.js` (`/api/bookings/:refCode/pay` and `/api/bookings/:refCode/cancel`) paired with state management methods inside `objects.js`. The solution implements uniform error payloads and returns exact HTTP network codes matching transaction outcomes.
+
+## What was wrong or changed:
+Nothing. The business state transition filters matched all acceptance criteria immediately, passing the full test engine execution block with 7 out of 7 successful test validations.

@@ -1,25 +1,40 @@
 // server.js
 import express from 'express';
-import { eventsStorage, handleBookingRegistration, searchAndSortEvents } from './objects.js';
+import { 
+    eventsStorage, 
+    bookingsStorage,
+    handleBookingRegistration, 
+    searchAndSortEvents, 
+    handlePaymentProcessing, 
+    handleBookingCancellation 
+} from './objects.js';
 import { Event, TicketTier } from './class.js';
 
 const app = express();
 const PORT = 3000;
 
-// Middleware to handle JSON payload data requests
 app.use(express.json());
 
-// 1. Health check route to confirm the server is running
+// Helper function to keep error response structures identical across all endpoints
+function sendErrorResponse(res, statusCode, errorCode, message) {
+    return res.status(statusCode).json({
+        success: false,
+        error: errorCode,
+        message: message
+    });
+}
+
+// 1. Health check route
 app.get('/api/health', (req, res) => {
     res.json({ status: 'UP', message: 'Event Ticketing Server is running!' });
 });
 
-// 2. Create an Event dynamically over the web
+// 2. Create an Event with ticket tiers
 app.post('/api/events', (req, res) => {
     const { id, title, city, date, tiers } = req.body;
 
     if (!id || !title || !city || !date) {
-        return res.status(400).json({ error: 'VALIDATION', message: 'Missing required event fields' });
+        return sendErrorResponse(res, 400, 'VALIDATION', 'Missing required event fields');
     }
 
     const newEvent = new Event(id, title, city, date);
@@ -34,13 +49,12 @@ app.post('/api/events', (req, res) => {
 
     return res.status(201).json({
         success: true,
-        message: `Event '${title}' successfully created in memory storage!`,
-        event: { id: newEvent.id, title: newEvent.title, city: newEvent.city, date: newEvent.date, totalTiersCount: newEvent.tiers.size }
+        message: `Event '${title}' successfully created!`,
+        event: { id: newEvent.id, title: newEvent.title, city: newEvent.city, date: newEvent.date }
     });
 });
 
-// 3. New Route: Search and Sort Events over the web using URL queries!
-// Example: http://localhost:3000/api/events/search?city=Lagos&sortBy=date
+// 3. Search and sort published events via query links
 app.get('/api/events/search', (req, res) => {
     const { text, city, maxPriceInCents, sortBy } = req.query;
 
@@ -51,39 +65,52 @@ app.get('/api/events/search', (req, res) => {
         sortBy
     };
 
-    // Calls your custom filter engine and Merge Sort algorithm automatically
-    const filteredResults = searchAndSortEvents(criteria);
-    return res.json({ success: true, count: filteredResults.length, results: filteredResults });
+    const results = searchAndSortEvents(criteria);
+    return res.json({ success: true, count: results.length, results });
 });
 
-// 4. New Route: Purchase a Ticket booking dynamically!
+// 4. Create a ticket booking reservation
 app.post('/api/bookings', (req, res) => {
     const { eventId, tierName, attendeeName, quantity } = req.body;
 
     if (!eventId || !tierName || !attendeeName || !quantity) {
-        return res.status(400).json({ error: 'VALIDATION', message: 'Missing fields for ticket order registration' });
+        return sendErrorResponse(res, 400, 'VALIDATION', 'Missing fields for ticket order registration');
     }
 
-    // Process order constraints via your objects.js engine
     const orderResult = handleBookingRegistration(eventId, tierName, attendeeName, parseInt(quantity, 10));
 
     if (!orderResult.success) {
         if (orderResult.reason === 'SOLD_OUT_ADDED_TO_WAITLIST') {
-            return res.status(202).json({
-                success: false,
-                status: 'WAITLISTED',
-                message: 'Ticket tier tier is sold out. You have been added to the sequential waitlist queue.'
-            });
+            return res.status(202).json({ success: false, status: 'WAITLISTED', message: 'Added to waitlist.' });
         }
-        return res.status(400).json({ success: false, error: orderResult.reason });
+        return sendErrorResponse(res, 400, orderResult.reason, 'Reservation booking rejected');
     }
 
-    return res.status(201).json({
-        success: true,
-        status: 'CONFIRMED',
-        message: 'Ticket order successfully processed and confirmed!',
-        booking: orderResult.booking
-    });
+    return res.status(201).json({ success: true, status: 'CONFIRMED', booking: orderResult.booking });
+});
+
+// 5. Route Endpoint: Confirm Payment for an open booking (Mock execution)
+app.post('/api/bookings/:refCode/pay', (req, res) => {
+    const { refCode } = req.params;
+    const paymentResult = handlePaymentProcessing(refCode);
+
+    if (!paymentResult.success) {
+        return sendErrorResponse(res, 400, paymentResult.reason, 'Payment processing transaction rejected');
+    }
+
+    return res.json({ success: true, message: 'Payment confirmed successfully', booking: paymentResult.booking });
+});
+
+// 6. Route Endpoint: Cancel an unpaid pending booking
+app.post('/api/bookings/:refCode/cancel', (req, res) => {
+    const { refCode } = req.params;
+    const cancelResult = handleBookingCancellation(refCode);
+
+    if (!cancelResult.success) {
+        return sendErrorResponse(res, 400, cancelResult.reason, 'Cancellation request refused');
+    }
+
+    return res.json({ success: true, message: 'Booking successfully cancelled', booking: cancelResult.booking });
 });
 
 app.listen(PORT, () => {
