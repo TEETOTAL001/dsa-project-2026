@@ -42,3 +42,15 @@ Updated route handlers in `server.js` (`/api/bookings/:refCode/pay` and `/api/bo
 
 ## What was wrong or changed:
 Nothing. The business state transition filters matched all acceptance criteria immediately, passing the full test engine execution block with 7 out of 7 successful test validations.
+
+
+# AI Log: Build 5
+
+## What I asked:
+I requested a migration of the system storage state layer from transient in-memory objects to a persistent SQLite database structure using Node's native database connector. I also required a validation script to fire 50 rapid parallel bookings against an event tier holding exactly 1 seat left to guarantee concurrency protection.
+
+## What came back:
+A structural layout inside `database.js` executing schema tables using integrated SQL checks (`CHECK (tickets_sold <= capacity)`). This is backed by a transactional execution strategy in `objects.js` and an automated simulation runner loop configured inside `simulate.js`.
+
+## What was wrong or changed:
+Nothing. The database level table check intercepted the overflow attempts natively, ensuring exactly 1 attendee succeeded while rejecting the remaining 49 racing requests cleanly with a SOLD_OUT status.

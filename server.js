@@ -1,21 +1,22 @@
 // server.js
 import express from 'express';
+import { initializeDatabaseSchema } from './database.js'; // Look here! Import our schema launcher.
 import { 
-    eventsStorage, 
-    bookingsStorage,
     handleBookingRegistration, 
     searchAndSortEvents, 
     handlePaymentProcessing, 
     handleBookingCancellation 
 } from './objects.js';
-import { Event, TicketTier } from './class.js';
+import { db } from './database.js';
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json());
 
-// Helper function to keep error response structures identical across all endpoints
+// Initialize SQLite tables automatically on server startup (Build 5)
+initializeDatabaseSchema();
+
 function sendErrorResponse(res, statusCode, errorCode, message) {
     return res.status(statusCode).json({
         success: false,
@@ -29,7 +30,7 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'UP', message: 'Event Ticketing Server is running!' });
 });
 
-// 2. Create an Event with ticket tiers
+// 2. Create an Event with ticket tiers directly in SQLite
 app.post('/api/events', (req, res) => {
     const { id, title, city, date, tiers } = req.body;
 
@@ -37,24 +38,28 @@ app.post('/api/events', (req, res) => {
         return sendErrorResponse(res, 400, 'VALIDATION', 'Missing required event fields');
     }
 
-    const newEvent = new Event(id, title, city, date);
+    try {
+        const insertEvent = db.prepare('INSERT INTO events (id, title, city, date) VALUES (?, ?, ?, ?)');
+        insertEvent.run(id, title, city, date);
 
-    if (tiers && Array.isArray(tiers)) {
-        for (const t of tiers) {
-            newEvent.addTier(new TicketTier(t.name, t.priceInCents, t.capacity));
+        if (tiers && Array.isArray(tiers)) {
+            const insertTier = db.prepare('INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES (?, ?, ?, ?, 0)');
+            for (const t of tiers) {
+                insertTier.run(id, t.name, t.priceInCents, t.capacity);
+            }
         }
+
+        return res.status(201).json({
+            success: true,
+            message: `Event '${title}' successfully created in SQLite database!`,
+            event: { id, title, city, date }
+        });
+    } catch (err) {
+        return sendErrorResponse(res, 400, 'DATABASE_ERROR', err.message);
     }
-
-    eventsStorage.set(id, newEvent);
-
-    return res.status(201).json({
-        success: true,
-        message: `Event '${title}' successfully created!`,
-        event: { id: newEvent.id, title: newEvent.title, city: newEvent.city, date: newEvent.date }
-    });
 });
 
-// 3. Search and sort published events via query links
+// 3. Search and sort published events via URL queries
 app.get('/api/events/search', (req, res) => {
     const { text, city, maxPriceInCents, sortBy } = req.query;
 
@@ -80,16 +85,13 @@ app.post('/api/bookings', (req, res) => {
     const orderResult = handleBookingRegistration(eventId, tierName, attendeeName, parseInt(quantity, 10));
 
     if (!orderResult.success) {
-        if (orderResult.reason === 'SOLD_OUT_ADDED_TO_WAITLIST') {
-            return res.status(202).json({ success: false, status: 'WAITLISTED', message: 'Added to waitlist.' });
-        }
         return sendErrorResponse(res, 400, orderResult.reason, 'Reservation booking rejected');
     }
 
     return res.status(201).json({ success: true, status: 'CONFIRMED', booking: orderResult.booking });
 });
 
-// 5. Route Endpoint: Confirm Payment for an open booking (Mock execution)
+// 5. Confirm Payment for an open booking
 app.post('/api/bookings/:refCode/pay', (req, res) => {
     const { refCode } = req.params;
     const paymentResult = handlePaymentProcessing(refCode);
@@ -101,7 +103,7 @@ app.post('/api/bookings/:refCode/pay', (req, res) => {
     return res.json({ success: true, message: 'Payment confirmed successfully', booking: paymentResult.booking });
 });
 
-// 6. Route Endpoint: Cancel an unpaid pending booking
+// 6. Cancel an unpaid pending booking
 app.post('/api/bookings/:refCode/cancel', (req, res) => {
     const { refCode } = req.params;
     const cancelResult = handleBookingCancellation(refCode);
@@ -114,5 +116,5 @@ app.post('/api/bookings/:refCode/cancel', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Server successfully listening at http://localhost:${PORT}`);
+    console.log(`🚀 Database server successfully listening at http://localhost:${PORT}`);
 });
