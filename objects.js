@@ -1,4 +1,5 @@
 // objects.js
+import { DomainErrors } from './src/domain/errors.js';
 import { Booking } from './class.js';
 import { mergeSort } from './src/domain/sorting.js';
 import { db } from './database.js'; // Imports the live native SQLite connector
@@ -10,18 +11,18 @@ export function generateReferenceCode() {
 // S06 & S08: Core ticket booking registration using atomic SQL transactions
 export function handleBookingRegistration(eventId, tierName, attendeeName, quantity) {
     if (quantity <= 0 || quantity > 10) {
-        return { success: false, reason: 'VALIDATION' };
+        return { success: false, reason: DomainErrors.VALIDATION };
     }
 
     // 1. Fetch the ticket tier to check existence and capacity bounds
     const selectTier = db.prepare('SELECT tickets_sold, capacity FROM ticket_tiers WHERE event_id = ? AND name = ?');
     const tier = selectTier.get(eventId, tierName);
 
-    if (!tier) return { success: false, reason: 'TIER_NOT_FOUND' };
+    if (!tier) return { success: false, reason: DomainErrors.TIER_NOT_FOUND };
 
     // Enforce business rules from user-stories.md acceptance criteria
     if (tier.tickets_sold + quantity > tier.capacity) {
-        return { success: false, reason: 'SOLD_OUT' };
+        return { success: false, reason: DomainErrors.SOLD_OUT };
     }
 
     const refCode = generateReferenceCode();
