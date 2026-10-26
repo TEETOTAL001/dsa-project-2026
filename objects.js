@@ -1,6 +1,6 @@
 // objects.js
 import { Booking } from './class.js';
-import { mergeSort } from './sorting.js';
+import { mergeSort } from './src/domain/sorting.js';
 import { db } from './database.js'; // Imports the live native SQLite connector
 
 export function generateReferenceCode() {
@@ -106,7 +106,7 @@ export function handlePaymentProcessing(bookingRefCode) {
         return { success: false, reason: 'INVALID_STATE_CHANGE' };
     }
 
-    const updateBookingStatus = db.prepare('UPDATE bookings SET status = "PAID" WHERE reference_code = ?');
+    const updateBookingStatus = db.prepare("UPDATE bookings SET status = 'PAID' WHERE reference_code = ?");
     updateBookingStatus.run(bookingRefCode);
 
     booking.status = 'PAID';

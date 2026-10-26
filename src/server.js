@@ -1,13 +1,13 @@
 // server.js
-import express from 'express';
-import { initializeDatabaseSchema } from './database.js'; // Look here! Import our schema launcher.
+import { initializeDatabaseSchema, db } from '../database.js'; 
 import { 
     handleBookingRegistration, 
     searchAndSortEvents, 
     handlePaymentProcessing, 
     handleBookingCancellation 
-} from './objects.js';
-import { db } from './database.js';
+} from '../objects.js';
+import { Event, TicketTier } from '../class.js';
+
 
 const app = express();
 const PORT = 3000;
