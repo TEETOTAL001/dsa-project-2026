@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Ticketing Hub</title>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .event-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .event-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-top: 5px solid #3498db;
+        }
+
+        .event-title {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+
+        .event-meta {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+
+        .tier-select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            border: 1px solid #bdc3c7;
+            background-color: #fafafa;
+        }
+
+        .btn-book {
+            display: block;
+            width: 100%;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .btn-book:hover {
+            background-color: #27ae60;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎟️ Event Ticketing Hub</h1>
+            <p>Select your favorite event and secure your ticket reservations instantly</p>
+        </header>
+
+        <!-- Dynamic Event Injector Target -->
+        <main id="events-display" class="event-grid">
+            <p>Loading premium event listings...</p>
+        </main>
+    </div>
+
+    <!-- Links our frontend javascript driver layout -->
+    <script src="app.js"></script>
+</body>
+</html>
