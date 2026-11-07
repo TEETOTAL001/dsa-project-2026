@@ -54,3 +54,15 @@ A structural layout inside `database.js` executing schema tables using integrate
 
 ## What was wrong or changed:
 Nothing. The database level table check intercepted the overflow attempts natively, ensuring exactly 1 attendee succeeded while rejecting the remaining 49 racing requests cleanly with a SOLD_OUT status.
+
+
+# AI Log: Build 6
+
+## What I asked:
+I requested a browser-based frontend dashboard layer driven by standalone mock data models to let users interactively view available program events, pick matching ticket tiers, and see booking confirmation states. I also required my native HTTP backend app engine structure to be modularly re-aligned with my instructor's folder layout architecture.
+
+## What came back:
+A complete `public/` directory hosting static user interfaces (`index.html` and `app.js`). This is paired with an updated native server infrastructure file mapping inside `src/http/app.js` capable of dynamically serving static file headers over local connection ports.
+
+## What was wrong or changed:
+The frontend script was initially stuck on a "Loading premium event listings..." screen. This was caused by Node's native path solver parsing the leading slash of the requested path (`/app.js`) as an absolute machine root location. Resolved the issue by using `.slice(1)` inside `src/http/app.js` to strip out the leading slash, enabling clean local path resolution on Windows.
