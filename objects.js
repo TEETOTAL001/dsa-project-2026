@@ -162,3 +162,9 @@ export function handleBookingCancellation(bookingRefCode) {
     booking.status = 'CANCELLED';
     return { success: true, booking };
 }
+
+// Build 7: Safe export alignment for legacy simulation/benchmark utility scripts
+export const eventsStorage = {
+    all: () => db.prepare('SELECT * FROM events').all(),
+    get: (id) => db.prepare('SELECT * FROM events WHERE id = ?').get(id)
+};

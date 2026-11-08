@@ -17,7 +17,6 @@ initializeDatabaseSchema();
 
 const app = createApp();
 
-// Helper function to send standard JSON errors
 function sendJsonError(res, statusCode, errorCode, message) {
     res.statusCode = statusCode;
     return res.end(JSON.stringify({ success: false, error: errorCode, message }));
@@ -51,12 +50,24 @@ app.post('/api/auth/login', (req, res) => {
 
 // 4. Browsing Endpoint: Search and Sort published events
 app.get('/api/events/search', (req, res) => {
+    // Natively parse query parameters out of req.url if router didn't attach them
+    const urlParts = req.url.split('?');
+    const queryParams = {};
+    if (urlParts.length > 1) {
+        const pairs = urlParts[1].split('&');
+        for (const pair of pairs) {
+            const [key, val] = pair.split('=');
+            if (key) queryParams[key] = decodeURIComponent(val || '');
+        }
+    }
+
     const criteria = {
-        text: req.query?.text,
-        city: req.query?.city,
-        maxPriceInCents: req.query?.maxPriceInCents ? parseInt(req.query.maxPriceInCents, 10) : undefined,
-        sortBy: req.query?.sortBy
+        text: req.query?.text || queryParams.text,
+        city: req.query?.city || queryParams.city,
+        maxPriceInCents: (req.query?.maxPriceInCents || queryParams.maxPriceInCents) ? parseInt(req.query?.maxPriceInCents || queryParams.maxPriceInCents, 10) : undefined,
+        sortBy: req.query?.sortBy || queryParams.sortBy
     };
+    
     const results = searchAndSortEvents(criteria);
     res.end(JSON.stringify({ success: true, count: results.length, results }));
 });
@@ -64,8 +75,6 @@ app.get('/api/events/search', (req, res) => {
 // 5. Transaction Endpoint: Create a Ticket Booking Reservation
 app.post('/api/bookings', (req, res) => {
     const { eventId, tierName, attendeeName, quantity } = req.body;
-    
-    // Extracted securely from the active request token signature
     const attendeeId = req.user ? req.user.id : null; 
 
     const orderResult = handleBookingRegistration(eventId, tierName, attendeeName, quantity, attendeeId);
@@ -78,7 +87,6 @@ app.post('/api/bookings', (req, res) => {
 
 // 6. Privacy Secured Endpoint: Fetch Customer Bookings Dashboard
 app.get('/api/my-tickets', (req, res) => {
-    // S13 Access Rule: Enforce authentication barrier check
     if (!req.user) {
         return sendJsonError(res, 401, 'UNAUTHORIZED', 'Access token missing or invalid');
     }
@@ -129,7 +137,7 @@ app.post('/api/events', (req, res) => {
         }
 
         res.statusCode = 201;
-        res.end(JSON.stringify({ success: true, message: `Event '${title}' successfully published to live network indexes!` }));
+        res.end(JSON.stringify({ success: true, message: `Event '${title}' successfully published!` }));
     } catch (err) {
         return sendJsonError(res, 400, 'DATABASE_ERROR', err.message);
     }

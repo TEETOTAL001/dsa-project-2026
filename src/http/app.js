@@ -13,12 +13,15 @@ export function createApp() {
         const authHeader = req.headers['authorization'];
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
-            req.user = verifyToken(token); // Extends identity metrics directly onto req.user securely
+            req.user = verifyToken(token); 
         }
 
-        // 2. STATIC FILE HANDLER FOR SYSTEM FRONTEND CODES
-        if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html' || req.url === '/app.js')) {
-            const fileName = req.url === '/' ? 'index.html' : req.url.slice(1);
+        // 2. BULLETPROOF STATIC FILE HANDLER FOR FRONTEND ASSETS
+        // Cleans up trailing query characters or extensions seamlessly
+        const cleanUrl = req.url.split('?')[0];
+
+        if (req.method === 'GET' && (cleanUrl === '/' || cleanUrl === '/index.html' || cleanUrl === '/app.js')) {
+            const fileName = cleanUrl === '/' ? 'index.html' : cleanUrl.slice(1);
             const filePath = path.join(process.cwd(), 'public', fileName);
             const contentType = fileName.endsWith('.js') ? 'application/javascript' : 'text/html';
             
@@ -32,7 +35,7 @@ export function createApp() {
             }
         }
 
-        // 3. EXISTING REST API ROUTE ENGINE MULTIPLEXER
+        // 3. REST API ROUTE ENGINE MULTIPLEXER
         res.setHeader('Content-Type', 'application/json');
         const routeMatch = router.match(req.method, req.url);
 
