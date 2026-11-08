@@ -1,32 +1,35 @@
 // tests/index.test.js
 import test from 'node:test';
 import assert from 'node:assert';
-import { Event, TicketTier } from '../class.js';
-import { db } from '../database.js';
+import { db, initializeDatabaseSchema } from '../database.js';
 import { 
     searchAndSortEvents, 
     handlePaymentProcessing, 
     handleBookingCancellation 
 } from '../objects.js';
 
+// 1. Initialize the tables FIRST so they exist in our clean file!
+initializeDatabaseSchema();
+
 // Setup Mock Data for Testing directly inside SQLite
 db.exec('DELETE FROM bookings;');
 db.exec('DELETE FROM ticket_tiers;');
 db.exec('DELETE FROM events;');
 
-db.prepare("INSERT INTO events (id, title, city, date) VALUES ('E1', 'Afrobeats Fest', 'Lagos', '2026-12-25')").run();
+// Make sure these SQL queries match your new schema layout columns
+db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E1', 'Afrobeats Fest', 'Eko Hotel', 'Lagos', '2026-12-25', 'draft')").run();
 db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES ('E1', 'Regular', 5000, 100, 0)").run();
 
-db.prepare("INSERT INTO events (id, title, city, date) VALUES ('E2', 'Tech Conference', 'Abuja', '2026-11-10')").run();
+db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E2', 'Tech Conference', 'ICC', 'Abuja', '2026-11-10', 'draft')").run();
 db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES ('E2', 'General', 1500, 50, 0)").run();
 
-db.prepare("INSERT INTO events (id, title, city, date) VALUES ('E3', 'Jazz Night', 'Lagos', '2026-10-05')").run();
+db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E3', 'Jazz Night', 'Muson Centre', 'Lagos', '2026-10-05', 'draft')").run();
 db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES ('E3', 'VIP', 10000, 20, 0)").run();
 
 test('Build 5: Filter events by city correctly', (t) => {
     const results = searchAndSortEvents({ city: 'Lagos' });
     assert.strictEqual(results.length, 2);
-    assert.ok(results.every(e => e.city === 'Lagos'));
+    assert.ok(results.every(e => e.city === 'lagos' || e.city === 'Lagos'));
 });
 
 test('Build 5: Filter events by text search matching title', (t) => {

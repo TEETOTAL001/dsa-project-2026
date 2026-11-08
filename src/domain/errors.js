@@ -1,11 +1,13 @@
 // src/domain/errors.js
 
-// Central dictionary definitions to match course acceptance criteria 
-export const DomainErrors = {
-    VALIDATION: 'VALIDATION',
-    EVENT_NOT_FOUND: 'EVENT_NOT_FOUND',
-    TIER_NOT_FOUND: 'TIER_NOT_FOUND',
-    SOLD_OUT: 'SOLD_OUT',
-    BOOKING_NOT_FOUND: 'BOOKING_NOT_FOUND',
-    INVALID_STATE_CHANGE: 'INVALID_STATE_CHANGE'
-};
+// One error type for every "expected" failure: bad input, sold out, not found.
+// The 'code' is stable and machine-readable. The 'message' is for humans.
+// Later builds map each code to an HTTP status in one place.
+export class DomainError extends Error {
+    constructor(code, message, details = {}) {
+        super(message);
+        this.name = 'DomainError';
+        this.code = code;
+        this.details = details;
+    }
+}

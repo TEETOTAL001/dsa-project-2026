@@ -1,75 +1,87 @@
 // public/app.js
 
-// Hardcoded mock dataset to drive Build 6 frontend layout locally
-const mockEvents = [
-    {
-        id: "E1",
-        title: "Afrobeats Fest 2026",
-        city: "Lagos",
-        date: "2026-12-25",
-        tiers: [
-            { name: "Regular", price: "$50.00", availability: "Available" },
-            { name: "VIP", price: "$150.00", availability: "Limited Seats" }
-        ]
-    },
-    {
-        id: "E2",
-        title: "Global Tech Summit",
-        city: "Abuja",
-        date: "2026-11-10",
-        tiers: [
-            { name: "General Admission", price: "$20.00", availability: "Available" },
-            { name: "VIP Access", price: "$100.00", availability: "Sold Out" }
-        ]
-    },
-    {
-        id: "E3",
-        title: "Night of Jazz & Strings",
-        city: "Lagos",
-        date: "2026-10-05",
-        tiers: [
-            { name: "Standard Entry", price: "$35.00", availability: "Available" }
-        ]
-    }
-];
-
-// Renders event elements into our container layout DOM target
-function renderEventDashboard() {
+// Dynamic asynchronous loader to fetch real event records from our database endpoint (Build 7)
+async function fetchAndRenderDashboard() {
     const displayContainer = document.getElementById('events-display');
-    displayContainer.innerHTML = ''; // Wipes placeholder text
+    
+    try {
+        // Fire network fetch call to hit our custom native search API endpoint route (GET)
+        const response = await fetch('/api/events/search');
+        const data = await response.json();
 
-    mockEvents.forEach(event => {
-        const card = document.createElement('div');
-        card.className = 'event-card';
+        if (!data.success || data.results.length === 0) {
+            displayContainer.innerHTML = `<p>No live events found inside the database storage file.</p>`;
+            return;
+        }
 
-        // Map drop down list values dynamically from array layers
-        const tierOptions = event.tiers.map(t => 
-            `<option value="${t.name}">${t.name} — ${t.price} (${t.availability})</option>`
-        ).join('');
+        displayContainer.innerHTML = ''; // Clear out initialization placeholder tags
 
-        card.innerHTML = `
-            <h3 class="event-title">${event.title}</h3>
-            <div class="event-meta">
-                <strong>📍 Location:</strong> ${event.city}<br>
-                <strong>📅 Date:</strong> ${event.date}
-            </div>
-            <label for="tier-${event.id}"><strong>Choose Ticket Tier:</strong></label>
-            <select id="tier-${event.id}" class="tier-select">
-                ${tierOptions}
-            </select>
-            <button class="btn-book" onclick="triggerMockBooking('${event.title}', '${event.id}')">
-                Reserve Seat Now
-            </button>
-        `;
-        displayContainer.appendChild(card);
-    });
+        // Map live database records into interactive graphical layout elements
+        data.results.forEach(event => {
+            const card = document.createElement('div');
+            card.className = 'event-card';
+
+            // Convert event sub-resource object map layout entries into option tags dynamically
+            // Note: Since data comes back from server JSON, tiers are standard object structures
+            const tierOptions = Object.values(event.tiers).map(t => 
+                `<option value="${t.name}">${t.name} — $${(t.priceInCents / 100).toFixed(2)} (${t.capacity - t.ticketsSold} left)</option>`
+            ).join('');
+
+            card.innerHTML = `
+                <h3 class="event-title">${event.title}</h3>
+                <div class="event-meta">
+                    <strong>📍 Location:</strong> ${event.city}<br>
+                    <strong>📅 Date:</strong> ${event.date}
+                </div>
+                <label for="tier-${event.id}"><strong>Choose Ticket Tier:</strong></label>
+                <select id="tier-${event.id}" class="tier-select">
+                    ${tierOptions}
+                </select>
+                <button class="btn-book" onclick="processLiveBooking('${event.id}', '${event.title}')">
+                    Reserve Seat Now
+                </button>
+            `;
+            displayContainer.appendChild(card);
+        });
+
+    } catch (err) {
+        displayContainer.innerHTML = `<p style="color: red;">Failed to communicate with live API server engine: ${err.message}</p>`;
+    }
 }
 
-// User action handler displaying selected tier alert state
-window.triggerMockBooking = function(eventTitle, eventId) {
+// User submission transaction handler executing raw POST payloads across the network
+window.processLiveBooking = async function(eventId, eventTitle) {
     const selectedTier = document.getElementById(`tier-${eventId}`).value;
-    alert(`🎉 Mock Booking Success!\nEvent: ${eventTitle}\nSelected Tier: ${selectedTier}\n\n(Build 6 Front-end Mock Phase Working Correctly!)`);
+    const attendeeName = prompt(`Enter customer name to confirm booking for ${eventTitle} (${selectedTier} Tier):`);
+
+    if (!attendeeName) return; // Exit gracefully if user hits cancel
+
+    try {
+        // Execute dynamic HTTP POST fetch payload transfer across network lines
+        const response = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                eventId: eventId,
+                tierName: selectedTier,
+                attendeeName: attendeeName,
+                quantity: 1 // Standardize single allocation purchase rule for validation checkpoint
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(`🎉 Booking Confirmed Successfully!\n\nReference: ${result.booking.referenceCode}\nAttendee: ${attendeeName}\nEvent: ${eventTitle}`);
+            fetchAndRenderDashboard(); // Hot reload layout to automatically sync updated ticket availability counts!
+        } else {
+            alert(`❌ Reservation Request Denied:\nReason: ${result.message || result.error}`);
+        }
+
+    } catch (err) {
+        alert(`❌ Network transmission failure: ${err.message}`);
+    }
 };
 
-// Fire up layout rendering when page initialization completes
-document.addEventListener('DOMContentLoaded', renderEventDashboard);
+// Start system initialization tracking on layout boot
+document.addEventListener('DOMContentLoaded', fetchAndRenderDashboard);

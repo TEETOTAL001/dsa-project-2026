@@ -10,8 +10,10 @@ export function initializeDatabaseSchema() {
         CREATE TABLE IF NOT EXISTS events (
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
+            venue TEXT NOT NULL,
             city TEXT NOT NULL,
-            date TEXT NOT NULL
+            startsAt TEXT NOT NULL,
+            status TEXT DEFAULT 'draft'
         );
     `);
 
@@ -25,7 +27,6 @@ export function initializeDatabaseSchema() {
             tickets_sold INTEGER DEFAULT 0,
             PRIMARY KEY (event_id, name),
             FOREIGN KEY (event_id) REFERENCES events(id),
-            /* CRITICAL FIX: The database will immediately reject a sale if tickets_sold exceeds capacity */
             CHECK (tickets_sold <= capacity)
         );
     `);
