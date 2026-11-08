@@ -2,14 +2,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Router } from './router.js';
+import { verifyToken } from '../domain/auth.js';
 
 export function createApp() {
     const router = new Router();
 
     const serverHandler = (req, res) => {
-        // 1. FIXED STATIC FILE HANDLER FOR SYSTEM FRONTEND (Build 6)
+        // 1. EXTRACT NATIVE USER SIGNED AUTHENTICATION TOKEN MIDDLEWARE LAYERS
+        req.user = null;
+        const authHeader = req.headers['authorization'];
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            req.user = verifyToken(token); // Extends identity metrics directly onto req.user securely
+        }
+
+        // 2. STATIC FILE HANDLER FOR SYSTEM FRONTEND CODES
         if (req.method === 'GET' && (req.url === '/' || req.url === '/index.html' || req.url === '/app.js')) {
-            // Strip the leading slash from the requested URL to target local folder assets correctly
             const fileName = req.url === '/' ? 'index.html' : req.url.slice(1);
             const filePath = path.join(process.cwd(), 'public', fileName);
             const contentType = fileName.endsWith('.js') ? 'application/javascript' : 'text/html';
@@ -24,7 +32,7 @@ export function createApp() {
             }
         }
 
-        // 2. EXISTING REST API ROUTE HANDLER (Build 3 & 4)
+        // 3. EXISTING REST API ROUTE ENGINE MULTIPLEXER
         res.setHeader('Content-Type', 'application/json');
         const routeMatch = router.match(req.method, req.url);
 
