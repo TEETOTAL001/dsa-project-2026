@@ -31,7 +31,7 @@ async function fetchAndRenderDashboard() {
                 <h3 class="event-title">${event.title}</h3>
                 <div class="event-meta">
                     <strong>📍 Location:</strong> ${event.city}<br>
-                    <strong>📅 Date:</strong> ${event.date}
+                    <strong>📅 Date:</strong> ${event.startsAt}
                 </div>
                 <label for="tier-${event.id}"><strong>Choose Ticket Tier:</strong></label>
                 <select id="tier-${event.id}" class="tier-select">
