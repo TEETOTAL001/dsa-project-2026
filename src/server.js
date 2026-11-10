@@ -3,15 +3,12 @@ import http from 'node:http';
 import { initializeDatabaseSchema, db } from '../database.js'; 
 import { createApp } from './http/app.js';
 import { config } from './config.js';
-import { Event, TicketTier } from '../class.js';
-import { 
-    handleUserSignup, 
-    handleUserLogin, 
-    handleBookingRegistration, 
-    searchAndSortEvents,
-    fetchAttendeeBookings,
-    fetchOrganizerDashboard
-} from '../objects.js';
+
+// Import our secure Enterprise Service Layers
+import { EventService } from './services/eventService.js';
+import { BookingService } from './services/bookingService.js';
+import { SQLiteUserRepository, SQLiteEventRepository, SQLiteBookingRepository } from './repositories/sqlite.js';
+import { handleUserSignup, handleUserLogin } from '../objects.js';
 
 initializeDatabaseSchema();
 
@@ -48,9 +45,8 @@ app.post('/api/auth/login', (req, res) => {
     res.end(JSON.stringify(result));
 });
 
-// 4. Browsing Endpoint: Search and Sort published events
+// 4. Browsing Endpoint: Refactored to fetch elements via EventService
 app.get('/api/events/search', (req, res) => {
-    // Natively parse query parameters out of req.url if router didn't attach them
     const urlParts = req.url.split('?');
     const queryParams = {};
     if (urlParts.length > 1) {
@@ -68,16 +64,16 @@ app.get('/api/events/search', (req, res) => {
         sortBy: req.query?.sortBy || queryParams.sortBy
     };
     
-    const results = searchAndSortEvents(criteria);
+    const results = EventService.searchAndSort(criteria);
     res.end(JSON.stringify({ success: true, count: results.length, results }));
 });
 
-// 5. Transaction Endpoint: Create a Ticket Booking Reservation
+// 5. Transaction Endpoint: Refactored to check out via BookingService
 app.post('/api/bookings', (req, res) => {
     const { eventId, tierName, attendeeName, quantity } = req.body;
     const attendeeId = req.user ? req.user.id : null; 
 
-    const orderResult = handleBookingRegistration(eventId, tierName, attendeeName, quantity, attendeeId);
+    const orderResult = BookingService.registerBooking(eventId, tierName, attendeeName, quantity, attendeeId);
     if (!orderResult.success) {
         return sendJsonError(res, 400, orderResult.reason, 'Reservation booking rejected');
     }
@@ -85,7 +81,7 @@ app.post('/api/bookings', (req, res) => {
     res.end(JSON.stringify({ success: true, booking: orderResult.booking }));
 });
 
-// 6. Privacy Secured Endpoint: Fetch Customer Bookings Dashboard
+// 6. Privacy Secured Endpoint: Pull customer bookings via repository layout
 app.get('/api/my-tickets', (req, res) => {
     if (!req.user) {
         return sendJsonError(res, 401, 'UNAUTHORIZED', 'Access token missing or invalid');
@@ -94,11 +90,11 @@ app.get('/api/my-tickets', (req, res) => {
         return sendJsonError(res, 403, 'FORBIDDEN', 'Wrong-role restriction boundary enforced');
     }
 
-    const bookings = fetchAttendeeBookings(req.user.id);
+    const bookings = SQLiteBookingRepository.findByAttendeeId(req.user.id);
     res.end(JSON.stringify({ success: true, count: bookings.length, results: bookings }));
 });
 
-// 7. Privacy Secured Endpoint: Fetch Organizer Program Management Board
+// 7. Privacy Secured Endpoint: Pull organizer records via repository layout
 app.get('/api/organizer/dashboard', (req, res) => {
     if (!req.user) {
         return sendJsonError(res, 401, 'UNAUTHORIZED', 'Access token missing or invalid');
@@ -107,11 +103,22 @@ app.get('/api/organizer/dashboard', (req, res) => {
         return sendJsonError(res, 403, 'FORBIDDEN', 'Wrong-role restriction boundary enforced');
     }
 
-    const events = fetchOrganizerDashboard(req.user.id);
+    const events = SQLiteEventRepository.findByOrganizerId(req.user.id);
     res.end(JSON.stringify({ success: true, count: events.length, results: events }));
 });
 
-// 8. Administrative Endpoint: Organizers Publish new Events
+// 8. Dynamic Payment Execution Route Mapping Integration
+app.post('/api/bookings/:refCode/pay', (req, res) => {
+    const { refCode } = req.params;
+    const paymentResult = BookingService.processPayment(refCode);
+    
+    if (!paymentResult.success) {
+        return sendJsonError(res, 400, paymentResult.reason, 'Payment processing transaction declined');
+    }
+    res.end(JSON.stringify(paymentResult));
+});
+
+// 9. Administrative Endpoint: Organizers Publish new Events via repositories
 app.post('/api/events', (req, res) => {
     if (!req.user) {
         return sendJsonError(res, 401, 'UNAUTHORIZED', 'Access token missing');
@@ -126,13 +133,11 @@ app.post('/api/events', (req, res) => {
     }
 
     try {
-        const insertEvent = db.prepare('INSERT INTO events (id, title, venue, city, startsAt, status, owner_id) VALUES (?, ?, ?, ?, ?, "published", ?)');
-        insertEvent.run(id, title, venue, city, startsAt, req.user.id);
+        SQLiteEventRepository.save({ id, title, venue, city, startsAt, status: 'published' }, req.user.id);
 
         if (tiers && Array.isArray(tiers)) {
-            const insertTier = db.prepare('INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES (?, ?, ?, ?, 0)');
             for (const t of tiers) {
-                insertTier.run(id, t.name, t.priceInCents, t.capacity);
+                SQLiteEventRepository.saveTier(id, { name: t.name, priceInCents: t.priceInCents, capacity: t.capacity, ticketsSold: 0 });
             }
         }
 
@@ -146,5 +151,5 @@ app.post('/api/events', (req, res) => {
 const server = http.createServer(app.callback());
 
 server.listen(config.port, () => {
-    console.log(`🚀 Security server successfully listening at http://localhost:${config.port}`);
+    console.log(`🚀 Architecture server successfully listening at http://localhost:${config.port}`);
 });
