@@ -66,3 +66,16 @@ A complete `public/` directory hosting static user interfaces (`index.html` and 
 
 ## What was wrong or changed:
 The frontend script was initially stuck on a "Loading premium event listings..." screen. This was caused by Node's native path solver parsing the leading slash of the requested path (`/app.js`) as an absolute machine root location. Resolved the issue by using `.slice(1)` inside `src/http/app.js` to strip out the leading slash, enabling clean local path resolution on Windows.
+
+
+
+# AI Log: Build 8
+
+## What I asked:
+I requested a full structural refactoring of the application's data management tier to implement the Repository and Service patterns. Database initialization must run on a standalone `.sql` schema script file, and write operations must be safeguarded with Write-Ahead Logging (WAL) and atomic inventory updates.
+
+## What came back:
+Modular data repository blocks inside `src/repositories/sqlite.js` handling clean table queries, dedicated service coordinators in `src/services/` enforcing business validations, a separate `src/db/schema.sql` template, and a connection configuration enabling `journal_mode = WAL` and `foreign_keys = ON`.
+
+## What was wrong or changed:
+Encountered an initial `ERR_MODULE_NOT_FOUND` error due to a minor folder directory naming typo (`respositories` instead of `repositories`). Once renamed, the file pathways aligned perfectly. All 9 structural integration tests pass completely without errors or performance lag.
