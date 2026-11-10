@@ -69,13 +69,27 @@ The frontend script was initially stuck on a "Loading premium event listings..."
 
 
 
-# AI Log: Build 8
+
+# AI Log: Build 8 (Functional Features Expansion)
 
 ## What I asked:
-I requested a full structural refactoring of the application's data management tier to implement the Repository and Service patterns. Database initialization must run on a standalone `.sql` schema script file, and write operations must be safeguarded with Write-Ahead Logging (WAL) and atomic inventory updates.
+I requested the implementation of a time-critical refund calculation window matrix (>14 days for 100%, 7-14 days for 50%, <7 days non-refundable), an interactive waitlist queue system for sold-out ticket tiers, and a background hold worker routine that drops unpaid reservations after 5 minutes. A controllable system clock layer must be provided to thoroughly verify these timing limits inside automated tests.
 
 ## What came back:
-Modular data repository blocks inside `src/repositories/sqlite.js` handling clean table queries, dedicated service coordinators in `src/services/` enforcing business validations, a separate `src/db/schema.sql` template, and a connection configuration enabling `journal_mode = WAL` and `foreign_keys = ON`.
+A state wrapper `src/domain/clock.js` to simulate time travel across execution contexts, refactored transaction flows inside `src/services/bookingService.js` to enforce refund tiers, and an automated verification matrix inside `tests/index.test.js` validating custom date bounds.
 
 ## What was wrong or changed:
-Encountered an initial `ERR_MODULE_NOT_FOUND` error due to a minor folder directory naming typo (`respositories` instead of `repositories`). Once renamed, the file pathways aligned perfectly. All 9 structural integration tests pass completely without errors or performance lag.
+Rearranged table deletion setups in the initialization block into strict reverse hierarchical order to bypass SQLite file foreign key constraints.
+
+---
+
+# AI Log: Build 9 (QR Check-In & Security Finalization)
+
+## What I asked:
+I requested a secure ticket entry check-in mechanism that generates signed verification strings for paid attendees using private HMAC keys. Staff handlers must be provided to scan incoming payloads, updating the database parameters while explicitly identifying and rejecting altered/forged credentials or repeated/duplicate scans.
+
+## What came back:
+A cryptographic signature processing driver inside `src/domain/qr.js` using native `node:crypto` SHA256 hashes, a gateway entry route handler inside `src/services/checkInService.js`, and specialized assertions verifying fraud detection logic.
+
+## What was wrong or changed:
+Encountered persistent local database locking issues during test operations because of pre-cached table columns on disk. Resolved this by introducing an inline runtime table alteration catch-block directly inside the automated suite script initialization routine, bringing all 13 testing vectors to a successful green pass.
