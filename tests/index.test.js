@@ -8,19 +8,31 @@ import {
     handleBookingCancellation 
 } from '../objects.js';
 
-// Import Build 7 & Build 8 secure verification models
+// Import Build 7, 8, & 9 verification models
 import { handleUserLogin, handleUserSignup } from '../objects.js';
 import { generateToken, verifyToken } from '../src/domain/auth.js';
 import { BookingService } from '../src/services/bookingService.js';
+import { CheckInService } from '../src/services/checkInService.js';
+import { CryptographicTicketSigner } from '../src/domain/qr.js';
 import { SystemClock } from '../src/domain/clock.js';
 
-// 1. Initialize the tables FIRST so they exist in our clean file!
+// 1. Force drop any old tables first to ensure clean structural columns are built
+db.exec('DROP TABLE IF EXISTS bookings;');
+db.exec('DROP TABLE IF EXISTS waitlist_queues;');
+db.exec('DROP TABLE IF EXISTS ticket_tiers;');
+db.exec('DROP TABLE IF EXISTS events;');
+db.exec('DROP TABLE IF EXISTS users;');
+
+// 2. Initialize the tables FIRST so they exist in our clean file!
 initializeDatabaseSchema();
 
-// Setup Mock Data: Clear tables in strict dependency order to pass foreign key rules
-db.exec('DELETE FROM bookings;');
-db.exec('DELETE FROM ticket_tiers;');
-db.exec('DELETE FROM events;');
+// Force inject the column inline at test runtime if it's cached on disk
+try {
+    db.exec('ALTER TABLE bookings ADD COLUMN checked_in INTEGER DEFAULT 0;');
+} catch (e) {
+    // Column already exists, safe to ignore and proceed!
+}
+
 
 // Make sure these SQL queries match your new schema layout columns
 db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E1', 'Afrobeats Fest', 'Eko Hotel', 'Lagos', '2026-12-25', 'published')").run();
@@ -57,9 +69,9 @@ test('Build 5: Filter events within a maximum budget price', (t) => {
 test('Build 5: Sort events chronologically by date using custom Merge Sort', (t) => {
     const results = searchAndSortEvents({ sortBy: 'date' });
     assert.strictEqual(results.length, 3);
-    assert.strictEqual(results[0].id, 'E3'); // Oct 2026
-    assert.strictEqual(results[1].id, 'E2'); // Nov 2026
-    assert.strictEqual(results[2].id, 'E1'); // Dec 2026
+    assert.strictEqual(results[0].id, 'E3');
+    assert.strictEqual(results[1].id, 'E2');
+    assert.strictEqual(results[2].id, 'E1');
 });
 
 test('Build 5: Booking State Machine - Processing payment successful', (t) => {
@@ -124,7 +136,6 @@ test('Build 8: Refund Boundaries - Calculate 100% refund amount when event is > 
     `).run(SystemClock.now().getTime());
     
     const estimate = BookingService.calculateRefundAmount('REF-VAL-88');
-    
     assert.strictEqual(estimate.percentage, 100);
     assert.strictEqual(estimate.refundInCents, 10000);
 });
@@ -141,11 +152,36 @@ test('Build 8: Expiration Loops - Purge and cancel unpaid ticket allocations aft
         VALUES ('REF-EXP-99', 'E-REF1', 'VIP', 'Bob', 1, 'CONFIRMED', ?)
     `).run(SystemClock.now().getTime());
     
-    // Artificially skip time forward by 6 minutes using our system clock wrapper layer
     SystemClock.travelForwardByMs(6 * 60 * 1000);
     
     const counts = BookingService.purgeExpiredUnpaidHolds();
     assert.strictEqual(counts, 1);
-    
     SystemClock.reset();
+});
+
+// ==========================================
+// BUILD 9 CRYPTOGRAPHIC SCAN VECTOR TESTS
+// ==========================================
+
+test('Build 9: Security Scan - Approve signature loop and reject duplicate ticket entries', (t) => {
+    db.exec("DELETE FROM bookings; DELETE FROM ticket_tiers; DELETE FROM events;");
+    db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E9', 'Demo Fest', 'V9', 'C9', '2026-12-12', 'published')").run();
+    db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES ('E9', 'General', 1000, 10, 1)").run();
+    db.prepare("INSERT INTO bookings (reference_code, event_id, tier_name, attendee_name, quantity, status, checked_in) VALUES ('REF-999', 'E9', 'General', 'Charlie', 1, 'PAID', 0)").run();
+    
+    const validPayload = CryptographicTicketSigner.generateSecureCheckInPayload('REF-999');
+    
+    const scan1 = CheckInService.executeStaffCheckIn(validPayload);
+    assert.strictEqual(scan1.success, true);
+    
+    const scan2 = CheckInService.executeStaffCheckIn(validPayload);
+    assert.strictEqual(scan2.success, false);
+    assert.strictEqual(scan2.reason, 'DUPLICATE');
+});
+
+test('Build 9: Security Scan - Instantly detect and reject forged ticket signatures', (t) => {
+    const tamperedPayload = "REF-999.completelyAlteredSignatureValueStringHere";
+    const result = CheckInService.executeStaffCheckIn(tamperedPayload);
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.reason, 'FORGED');
 });

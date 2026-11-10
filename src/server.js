@@ -180,6 +180,38 @@ app.post('/api/jobs/purge-expired-holds', (req, res) => {
     res.end(JSON.stringify({ success: true, purgedCount: counts }));
 });
 
+import { CheckInService } from './services/checkInService.js';
+import { CryptographicTicketSigner } from './domain/qr.js';
+
+// Endpoint for Attendees to view their verified signed verification packet string
+app.get('/api/bookings/:refCode/qr-payload', (req, res) => {
+    const { refCode } = req.params;
+    const booking = SQLiteBookingRepository.findByReference(refCode);
+    
+    if (!booking) return sendJsonError(res, 404, 'NOT_FOUND', 'Booking reference not found');
+    if (booking.status !== 'PAID') return sendJsonError(res, 400, 'UNPAID', 'Ticket must be paid to generate QR content');
+
+    const signedPayload = CryptographicTicketSigner.generateSecureCheckInPayload(refCode);
+    res.end(JSON.stringify({ success: true, qrPayload: signedPayload }));
+});
+
+// Endpoint for Staff members to submit scanned barcodes for admission gate approvals
+app.post('/api/staff/check-in', (req, res) => {
+    if (!req.user) return sendJsonError(res, 401, 'UNAUTHORIZED', 'Access token missing');
+    if (req.user.role !== 'Staff' && req.user.role !== 'Organizer') {
+        return sendJsonError(res, 403, 'FORBIDDEN', 'Administrative check-in access restricted to staff only');
+    }
+
+    const { qrPayload } = req.body;
+    const result = CheckInService.executeStaffCheckIn(qrPayload);
+    
+    if (!result.success) {
+        res.statusCode = 400;
+    }
+    res.end(JSON.stringify(result));
+});
+
+
 const server = http.createServer(app.callback());
 
 server.listen(config.port, () => {

@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     status TEXT DEFAULT 'CONFIRMED',
     attendee_id TEXT,
     created_at INTEGER DEFAULT 0,
+    created_in INTEGER DEFAULT 0,
     FOREIGN KEY (event_id, tier_name) REFERENCES ticket_tiers(event_id, name),
     FOREIGN KEY (attendee_id) REFERENCES users(id)
 );
