@@ -8,10 +8,16 @@ import {
     handleBookingCancellation 
 } from '../objects.js';
 
+// Import Build 7 & Build 8 secure verification models
+import { handleUserLogin, handleUserSignup } from '../objects.js';
+import { generateToken, verifyToken } from '../src/domain/auth.js';
+import { BookingService } from '../src/services/bookingService.js';
+import { SystemClock } from '../src/domain/clock.js';
+
 // 1. Initialize the tables FIRST so they exist in our clean file!
 initializeDatabaseSchema();
 
-// Setup Mock Data for Testing directly inside SQLite
+// Setup Mock Data: Clear tables in strict dependency order to pass foreign key rules
 db.exec('DELETE FROM bookings;');
 db.exec('DELETE FROM ticket_tiers;');
 db.exec('DELETE FROM events;');
@@ -25,6 +31,10 @@ db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, 
 
 db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E3', 'Jazz Night', 'Muson Centre', 'Lagos', '2026-10-05', 'published')").run();
 db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES ('E3', 'VIP', 10000, 20, 0)").run();
+
+// ==========================================
+// BUILD 5 CORE FUNCTIONAL TESTS
+// ==========================================
 
 test('Build 5: Filter events by city correctly', (t) => {
     const results = searchAndSortEvents({ city: 'Lagos' });
@@ -70,15 +80,12 @@ test('Build 5: Booking State Machine - Refuse paying for an already cancelled bo
     assert.strictEqual(result.reason, 'INVALID_STATE_CHANGE');
 });
 
-// Append at the absolute bottom of tests/index.test.js
-import { handleUserLogin, handleUserSignup } from '../objects.js';
-import { generateToken, verifyToken } from '../src/domain/auth.js';
+// ==========================================
+// BUILD 7 ROBUST AUTHENTICATION TESTS
+// ==========================================
 
 test('Build 7: Authentication Matrix - User login authentication with hashed verification matches', (t) => {
-    // Reset database user testing layers
     db.exec("DELETE FROM users WHERE email = 'test-suite@auth.com'");
-    
-    // Register mock identity via backend signup interface
     handleUserSignup('test-suite@auth.com', 'securePwd123', 'Attendee');
 
     const result = handleUserLogin('test-suite@auth.com', 'securePwd123');
@@ -90,16 +97,55 @@ test('Build 7: Authentication Matrix - User login authentication with hashed ver
 test('Build 7: Authorization Matrix - Reject tampered or corrupted bad token signatures', (t) => {
     const fakeToken = "eyJwYXlsb2FkIjp0cnVlfQ==.corruptedSignatureStringHere";
     const userPayload = verifyToken(fakeToken);
-    
-    assert.strictEqual(userPayload, null); // Signature mismatch verification drops payload access!
+    assert.strictEqual(userPayload, null);
 });
 
 test('Build 7: Role Permission Matrix - Restrict wrong roles from reading administrative dashboard paths', (t) => {
-    // Generate valid signed token but bundle it with a mismatching role type allocation
     const nonOrganizerToken = generateToken({ id: 'user-99', email: 'user@test.com', role: 'Attendee' });
     const userPayload = verifyToken(nonOrganizerToken);
-    
-    // Assert data signature parses correctly but fails explicit authorization checks
     assert.strictEqual(userPayload.role, 'Attendee');
-    assert.notStrictEqual(userPayload.role, 'Organizer'); // Fails role criteria check!
+    assert.notStrictEqual(userPayload.role, 'Organizer');
+});
+
+// ==========================================
+// BUILD 8 TIMED ENGINE & REFUND BOUNDARY TESTS
+// ==========================================
+
+test('Build 8: Refund Boundaries - Calculate 100% refund amount when event is > 14 days away', (t) => {
+    SystemClock.reset();
+    db.exec("DELETE FROM bookings; DELETE FROM ticket_tiers; DELETE FROM events;");
+    
+    db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E-REF1', 'Future Fest', 'V1', 'City1', '2026-11-30', 'published')").run();
+    db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES ('E-REF1', 'VIP', 10000, 10, 1)").run();
+    
+    db.prepare(`
+        INSERT INTO bookings (reference_code, event_id, tier_name, attendee_name, quantity, status, created_at) 
+        VALUES ('REF-VAL-88', 'E-REF1', 'VIP', 'Alice', 1, 'CONFIRMED', ?)
+    `).run(SystemClock.now().getTime());
+    
+    const estimate = BookingService.calculateRefundAmount('REF-VAL-88');
+    
+    assert.strictEqual(estimate.percentage, 100);
+    assert.strictEqual(estimate.refundInCents, 10000);
+});
+
+test('Build 8: Expiration Loops - Purge and cancel unpaid ticket allocations after 5 minutes pass', (t) => {
+    SystemClock.reset();
+    db.exec("DELETE FROM bookings; DELETE FROM ticket_tiers; DELETE FROM events;");
+    
+    db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E-REF1', 'Future Fest', 'V1', 'City1', '2026-11-30', 'published')").run();
+    db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES ('E-REF1', 'VIP', 10000, 10, 1)").run();
+    
+    db.prepare(`
+        INSERT INTO bookings (reference_code, event_id, tier_name, attendee_name, quantity, status, created_at) 
+        VALUES ('REF-EXP-99', 'E-REF1', 'VIP', 'Bob', 1, 'CONFIRMED', ?)
+    `).run(SystemClock.now().getTime());
+    
+    // Artificially skip time forward by 6 minutes using our system clock wrapper layer
+    SystemClock.travelForwardByMs(6 * 60 * 1000);
+    
+    const counts = BookingService.purgeExpiredUnpaidHolds();
+    assert.strictEqual(counts, 1);
+    
+    SystemClock.reset();
 });

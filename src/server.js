@@ -148,6 +148,38 @@ app.post('/api/events', (req, res) => {
     }
 });
 
+// Add these inside src/server.js right below your other app.post/get mappings
+
+// Expose refund amount pre-calculation evaluations to users before they hit confirm
+app.get('/api/bookings/:refCode/refund-estimate', (req, res) => {
+    const { refCode } = req.params;
+    const evaluation = BookingService.calculateRefundAmount(refCode);
+    res.end(JSON.stringify({ success: true, ...evaluation }));
+});
+
+// Cancel a booking and issue a time-relative financial credit return
+app.post('/api/bookings/:refCode/cancel', (req, res) => {
+    const { refCode } = req.params;
+    const result = BookingService.cancelAndRefundBooking(refCode);
+    if (!result.success) return sendJsonError(res, 400, result.reason, result.message);
+    res.end(JSON.stringify(result));
+});
+
+// Let attendee users join waitlist line queues if ticket allocations are empty
+app.post('/api/events/:eventId/tiers/:tierName/waitlist', (req, res) => {
+    const { eventId, tierName } = req.params;
+    if (!req.user) return sendJsonError(res, 401, 'UNAUTHORIZED', 'Please sign in to join queue lines');
+    
+    const result = BookingService.joinTierWaitlist(eventId, tierName, req.user.id);
+    res.end(JSON.stringify(result));
+});
+
+// Periodic job mapping block: triggers expiry loops on instruction
+app.post('/api/jobs/purge-expired-holds', (req, res) => {
+    const counts = BookingService.purgeExpiredUnpaidHolds();
+    res.end(JSON.stringify({ success: true, purgedCount: counts }));
+});
+
 const server = http.createServer(app.callback());
 
 server.listen(config.port, () => {

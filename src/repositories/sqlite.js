@@ -89,3 +89,35 @@ export const SQLiteBookingRepository = {
         db.prepare('UPDATE ticket_tiers SET tickets_sold = tickets_sold - ? WHERE event_id = ? AND name = ?').run(quantity, eventId, tierName);
     }
 };
+
+export const SQLiteWaitlistRepository = {
+    join(id, eventId, tierName, userId, timestamp) {
+        const insert = db.prepare('INSERT INTO waitlist_queues (id, event_id, tier_name, user_id, joined_at, status) VALUES (?, ?, ?, ?, ?, "WAITING")');
+        insert.run(id, eventId, tierName, userId, timestamp);
+    },
+
+    findNextInLine(eventId, tierName) {
+        const query = db.prepare(`
+            SELECT * FROM waitlist_queues 
+            WHERE event_id = ? AND tier_name = ? AND status = 'WAITING' 
+            ORDER BY joined_at ASC LIMIT 1
+        `);
+        return query.get(eventId, tierName);
+    },
+
+    dispatchTimedOffer(queueId, expirationTimestamp) {
+        db.prepare("UPDATE waitlist_queues SET status = 'OFFERED', offer_expires_at = ? WHERE id = ?").run(expirationTimestamp, queueId);
+    },
+
+    findActiveOfferByUserId(userId, timestamp) {
+        return db.prepare("SELECT * FROM waitlist_queues WHERE user_id = ? AND status = 'OFFERED' AND offer_expires_at > ?").get(userId, timestamp);
+    },
+
+    expireActiveOffer(queueId) {
+        db.prepare("UPDATE waitlist_queues SET status = 'EXPIRED' WHERE id = ?").run(queueId);
+    },
+
+    acceptOffer(queueId) {
+        db.prepare("UPDATE waitlist_queues SET status = 'ACCEPTED' WHERE id = ?").run(queueId);
+    }
+};

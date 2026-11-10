@@ -37,6 +37,19 @@ CREATE TABLE IF NOT EXISTS bookings (
     quantity INTEGER NOT NULL,
     status TEXT DEFAULT 'CONFIRMED',
     attendee_id TEXT,
+    created_at INTEGER DEFAULT 0,
     FOREIGN KEY (event_id, tier_name) REFERENCES ticket_tiers(event_id, name),
     FOREIGN KEY (attendee_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS waitlist_queues (
+    id TEXT PRIMARY KEY,
+    event_id TEXT,
+    tier_name TEXT,
+    user_id TEXT,
+    joined_at INTEGER NOT NULL,
+    offer_expires_at INTEGER DEFAULT NULL,
+    status TEXT CHECK(status IN ('WAITING', 'OFFERED', 'EXPIRED', 'ACCEPTED')) DEFAULT 'WAITING',
+    FOREIGN KEY (event_id, tier_name) REFERENCES ticket_tiers(event_id, name),
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
