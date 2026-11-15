@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Secured Event Ticketing Hub</title>
-
+    <title>Event Ticketing Hub</title>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
         header { background-color: #2c3e50; color: white; padding: 20px; border-radius: 8px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
@@ -14,129 +12,114 @@
         .nav-buttons button:hover { background: rgba(255,255,255,0.2); }
         .container { max-width: 1000px; margin: 0 auto; }
         
-        /* Tab panel screens visibility controls */
+        /* View switching */
         .view-section { display: none; }
         .view-section.active { display: block; }
         
-        /* Grid Layout */
+        /* Event Grid & Cards */
         .event-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-top: 15px; }
-        
-        /* Upgraded Beautiful Card Elements Architecture */
         .event-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-top: 5px solid #3498db; display: flex; flex-direction: column; gap: 12px; }
         .event-title { margin: 0; color: #2c3e50; font-size: 1.4em; font-weight: 700; }
         .event-meta { font-size: 0.95em; color: #555; line-height: 1.6; background: #f8fafc; padding: 12px; border-radius: 6px; border-left: 3px solid #bdc3c7; }
-        
-        /* Form fields inside cards styled beautifully as full width blocks */
         .event-card label { font-weight: bold; font-size: 0.9em; color: #34495e; margin-top: 5px; }
         .tier-select { width: 100%; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1; background-color: #ffffff; font-size: 0.95em; color: #334155; cursor: pointer; box-sizing: border-box; }
-        .tier-select:focus { border-color: #3498db; outline: none; box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2); }
         
-        /* Premium full width transaction execution buttons */
-        .btn-book { display: block; width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; border-radius: 6px; font-weight: bold; font-size: 1em; cursor: pointer; text-align: center; transition: background 0.2s, transform 0.1s; box-sizing: border-box; }
-        .btn-book:hover { background-color: #2980b9; }
-        .btn-book:active { transform: scale(0.98); }
-        
-        /* Modal checkout overlays */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 420px; width: 100%; box-shadow: 0 5px 25px rgba(0,0,0,0.3); }
-        .timer-banner { background-color: #e74c3c; color: white; text-align: center; padding: 12px; font-weight: bold; border-radius: 6px; margin-bottom: 20px; font-size: 1.1em; }
-        
-        /* Auth forms card elements */
-        .auth-card { background: white; max-width: 420px; margin: 40px auto; padding: 35px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-top: 5px solid #9b59b6; }
-        .auth-card h3 { margin-top: 0; margin-bottom: 20px; color: #2c3e50; font-size: 1.6em; text-align: center; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #475569; font-size: 0.9em; }
-        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 1em; }
-        .form-group input:focus, .form-group select:focus { border-color: #9b59b6; outline: none; }
-        
-        .btn-action { display: block; width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; border-radius: 6px; font-weight: bold; font-size: 1em; cursor: pointer; text-align: center; box-sizing: border-box; }
-        .btn-action:hover { background-color: #2980b9; }
+        /* Buttons */
+        .btn-book, .btn-action { display: block; width: 100%; background-color: #3498db; color: white; border: none; padding: 14px; border-radius: 6px; font-weight: bold; font-size: 1em; cursor: pointer; text-align: center; box-sizing: border-box; }
+        .btn-book:hover, .btn-action:hover { background-color: #2980b9; }
         .btn-success { background-color: #2ecc71; }
         .btn-success:hover { background-color: #27ae60; }
+
+        /* Hidden Pop-up Modal Overlays */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 420px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 5px 25px rgba(0,0,0,0.3); }
+        .timer-banner { background-color: #e74c3c; color: white; text-align: center; padding: 12px; font-weight: bold; border-radius: 6px; margin-bottom: 20px; font-size: 1.1em; }
         
+        /* Auth & Forms */
+        .auth-card { background: white; max-width: 420px; margin: 40px auto; padding: 35px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border-top: 5px solid #9b59b6; }
+        .auth-card h3 { margin-top: 0; margin-bottom: 20px; color: #2c3e50; font-size: 1.6em; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: bold; color: #475569; font-size: 0.9em; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95em; }
+        
+        /* Tables */
         table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         th, td { padding: 14px 18px; text-align: left; border-bottom: 1px solid #e2e8f0; }
         th { background-color: #34495e; color: white; font-weight: 600; }
     </style>
-
 </head>
-
 <body>
     <div class="container">
         <header>
             <div>
                 <h1>🎟️ Event Ticketing Hub</h1>
-                <p id="user-status-text" style="margin: 5px 0 0 0; font-size: 0.9em; color: #bdc3c7;">Role: Guest Visitor</p>
+                <small id="user-status-text" style="color: #bdc3c7;">Role: Guest Visitor</small>
             </div>
             <div class="nav-buttons" id="navigation-bar">
                 <button onclick="switchView('browse-view')">🌐 Browse Events</button>
-                <button onclick="switchView('auth-view')" id="nav-login-btn">🔐 Login / Signup</button>
-                <button onclick="logoutSession()" id="nav-logout-btn" style="display: none; background-color: #e74c3c;">🚪 Logout</button>
+                <button id="nav-login-btn" onclick="switchView('auth-view')">🔐 Login / Signup</button>
+                <button id="nav-logout-btn" style="display:none; background-color:#e74c3c; border-color:#e74c3c;" onclick="logoutSession()">🚪 Logout</button>
             </div>
         </header>
 
-        <!-- SCREEN SECTION 1: PUBLIC BROWSER CATALOGUE -->
-        <main id="browse-view" class="view-section active">
+        <!-- 1. BROWSE EVENTS VIEW -->
+        <div id="browse-view" class="view-section active">
             <h2>📅 Live Published Program Listings</h2>
             <div id="events-display" class="event-grid">
-                <p>Loading database events data indexes...</p>
+                <p>Loading live events from database...</p>
             </div>
-        </main>
+        </div>
 
-        <!-- SCREEN SECTION 2: SECURE AUTHENTICATION ENTRY FORMS -->
-        <section id="auth-view" class="view-section">
+        <!-- 2. AUTHENTICATION VIEW -->
+        <div id="auth-view" class="view-section">
             <div class="auth-card">
                 <h3 id="auth-title">Sign In to Your Account</h3>
                 <div class="form-group">
                     <label for="auth-email">Email Address</label>
-                    <input type="email" id="auth-email" placeholder="attendee@test.com">
+                    <input type="email" id="auth-email" placeholder="e.g. attendee@test.com">
                 </div>
                 <div class="form-group">
                     <label for="auth-password">Password</label>
-                    <input type="password" id="auth-password" placeholder="••••••••">
+                    <input type="password" id="auth-password" placeholder="Enter your password">
                 </div>
-                <div class="form-group" id="signup-role-group" style="display: none;">
-                    <label for="auth-role">Select System Account Role</label>
+                <div class="form-group" id="signup-role-group" style="display:none;">
+                    <label for="auth-role">Account Role</label>
                     <select id="auth-role">
-                        <option value="Attendee">Attendee (Browse & Buy Tickets)</option>
-                        <option value="Organizer">Organizer (Publish Program Events)</option>
+                        <option value="Attendee">Attendee (Buy Tickets)</option>
+                        <option value="Organizer">Organizer (Create Events)</option>
+                        <option value="Staff">Staff (Gate Check-In)</option>
                     </select>
                 </div>
-                <button class="btn-action" id="auth-submit-btn" onclick="submitAuthForm()">Log In</button>
-                <p style="text-align: center; margin-top: 15px; font-size: 0.9em;">
-                    <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(event)">Don't have an account? Sign Up now</a>
+                <button id="auth-submit-btn" class="btn-action" onclick="submitAuthForm()">Log In</button>
+                <p style="text-align:center; margin-top:15px;">
+                    <a href="#" id="auth-toggle-link" onclick="toggleAuthMode(event)" style="color:#3498db; text-decoration:none; font-weight:bold;">Don't have an account? Sign Up now</a>
                 </p>
             </div>
-        </section>
+        </div>
 
-        <!-- SCREEN SECTION 3: PRIVATE CUSTOMER TICKETS BOARD (S13) -->
-        <section id="attendee-view" class="view-section">
-            <h2>🎫 My Personal Reserved Tickets</h2>
-            <p>Review and verify your verified ticket transactions securely below:</p>
-            <div id="tickets-table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Reference</th>
-                            <th>Event Title</th>
-                            <th>Venue</th>
-                            <th>Date</th>
-                            <th>Qty</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tickets-display-body">
-                        <tr><td colspan="6" style="text-align: center;">No reservations booked under this account index.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+        <!-- 3. ATTENDEE DASHBOARD VIEW -->
+        <div id="attendee-view" class="view-section">
+            <h2>🎫 My Booked Tickets</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Event</th>
+                        <th>Venue</th>
+                        <th>Date</th>
+                        <th>Qty</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="tickets-display-body"></tbody>
+            </table>
+        </div>
 
-        <!-- SCREEN SECTION 4: PRIVATE ORGANIZER PROGRAM MANAGEMENT BOARD (S02/S03/S04) -->
-        <section id="organizer-view" class="view-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <!-- 4. ORGANIZER DASHBOARD VIEW -->
+        <div id="organizer-view" class="view-section">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2>⚙️ Organizer Management Dashboard</h2>
-                <button class="btn-action btn-success" style="margin: 0; width: auto;" onclick="openCreateEventModal()">➕ Publish New Event</button>
+                <button class="btn-action btn-success" style="width:auto; padding:10px 20px;" onclick="openCreateEventModal()">+ Publish New Event</button>
             </div>
             <h3>My Authored Event Listings</h3>
             <table>
@@ -150,63 +133,77 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody id="organizer-events-body">
-                    <tr><td colspan="6" style="text-align: center;">No authored events managed under this profile.</td></tr>
-                </tbody>
+                <tbody id="organizer-events-body"></tbody>
             </table>
-        </section>
+        </div>
     </div>
 
-    <!-- MOCK PAYMENT OVERLAY MODAL -->
+    <!-- CHECKOUT MODAL OVERLAY -->
     <div id="checkout-modal" class="modal">
         <div class="modal-content">
             <div id="timer-display" class="timer-banner">Time Remaining: 05:00</div>
-            <h3>💳 Complete Ticket Payment</h3>
-            <p id="booking-details-text" style="font-size: 0.9em; color: #555;"></p>
+            <h3 style="margin-top:0;">💳 Complete Ticket Payment</h3>
+            <p id="booking-details-text" style="white-space: pre-line; color:#555; font-size:0.95em;"></p>
             <div class="form-group">
-                <label for="card-holder">Cardholder Name</label>
-                <input type="text" id="card-holder" placeholder="John Doe">
+                <label for="card-name">Cardholder Name</label>
+                <input type="text" id="card-name" placeholder="John Doe">
             </div>
             <div class="form-group">
                 <label for="card-number">Card Number</label>
                 <input type="text" id="card-number" placeholder="Type 4242 to pass">
             </div>
-            <div id="payment-error" style="color: #e74c3c; font-weight: bold; margin-bottom: 10px; display: none; text-align: center;">❌ Card Declined! Try again.</div>
-            <button class="btn-pay btn-action btn-success" style="margin:0; width:100%;" id="submit-payment-btn">Confirm Payment</button>
+            <p id="payment-error" style="color: #e74c3c; display: none; font-size: 0.9em; font-weight: bold;">❌ Payment Declined: Use a test card containing 4242.</p>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-action" style="margin:0; background-color:#7f8c8d;" onclick="document.getElementById('checkout-modal').style.display='none'">Cancel</button>
+                <button id="submit-payment-btn" class="btn-action btn-success" style="margin:0; flex-grow:1;">Confirm Payment</button>
+            </div>
         </div>
     </div>
 
-    <!-- ADMINISTRATIVE EVENT INCUBATION CREATION MODAL -->
+    <!-- PUBLISH EVENT MODAL OVERLAY -->
     <div id="event-modal" class="modal">
-
-        <div class="modal-content" style="max-width: 500px;">
-            <h3>📝 Publish Premium Program Event</h3>
+        <div class="modal-content">
+            <h3 style="margin-top:0;">🚀 Publish Premium Program Event</h3>
             <div class="form-group">
                 <label for="evt-id">Unique Event Identifier ID</label>
                 <input type="text" id="evt-id" placeholder="e.g. EV-99">
             </div>
-
             <div class="form-group">
                 <label for="evt-title">Event Title</label>
                 <input type="text" id="evt-title" placeholder="e.g. Afro-Fusion Extravaganza">
             </div>
-
             <div class="form-group">
                 <label for="evt-venue">Venue Name</label>
                 <input type="text" id="evt-venue" placeholder="e.g. Landmark Centre">
             </div>
-
             <div class="form-group">
                 <label for="evt-city">City Location</label>
                 <input type="text" id="evt-city" placeholder="e.g. Lagos">
             </div>
-
             <div class="form-group">
                 <label for="evt-date">Starts At Calendar Date</label>
                 <input type="date" id="evt-date">
             </div>
-        </div>
 
-        <script src="app.js"></script>
+            <h4 style="margin: 15px 0 5px 0;">Configure Standard Ticket Tier</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label for="evt-tier-price">Price (in whole Cents)</label>
+                    <input type="number" id="evt-tier-price" value="5000">
+                </div>
+                <div class="form-group">
+                    <label for="evt-tier-cap">Capacity Limit</label>
+                    <input type="number" id="evt-tier-cap" value="100">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn-action" style="margin:0; background-color:#7f8c8d;" onclick="document.getElementById('event-modal').style.display='none'">Cancel</button>
+                <button class="btn-action btn-success" style="margin:0; flex-grow:1;" onclick="submitCreateEventForm()">Publish Live Event</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
 </body>
 </html>
