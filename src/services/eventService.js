@@ -7,10 +7,23 @@ export const EventService = {
         let events = SQLiteEventRepository.findAllPublished();
 
         events = events.map(e => {
-            const fullEvent = { id: e.id, title: e.title, venue: e.venue, city: e.city, startsAt: e.startsAt, status: e.status, tiers: {} };
+            const fullEvent = { 
+                id: e.id, 
+                title: e.title, 
+                venue: e.venue, 
+                city: e.city, 
+                startsAt: e.startsAt, 
+                status: e.status, 
+                tiers: {} 
+            };
             const tiers = SQLiteEventRepository.findTiersByEventId(e.id);
             for (const t of tiers) {
-                fullEvent.tiers[t.name] = { name: t.name, priceInCents: t.price_in_cents, capacity: t.capacity, ticketsSold: t.tickets_sold };
+                fullEvent.tiers[t.name] = { 
+                    name: t.name, 
+                    priceInCents: t.price_in_cents, 
+                    capacity: t.capacity, 
+                    ticketsSold: t.tickets_sold 
+                };
             }
             return fullEvent;
         });

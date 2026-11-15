@@ -141,7 +141,14 @@ function syncSecurityInterfaceLayout() {
             btn.innerHTML = '⚙️ Organizer Dash';
             btn.onclick = () => switchView('organizer-view');
             navBar.insertBefore(btn, logoutBtn);
+        } else if (currentUser.role === 'Staff') {
+            const btn = document.createElement('button');
+            btn.className = 'role-nav-tab';
+            btn.innerHTML = '🛂 Gate Check-In';
+            btn.onclick = () => switchView('staff-view');
+            navBar.insertBefore(btn, logoutBtn);
         }
+
     } else {
         statusText.innerText = 'Role: Guest Visitor';
         loginBtn.style.display = 'inline-block';
@@ -177,13 +184,63 @@ async function fetchMyTicketsDashboard() {
                 <td>${b.venue}</td>
                 <td>${b.startsAt}</td>
                 <td>${b.quantity}</td>
-                <td style="color:${b.status === 'PAID' ? '#2ecc71' : '#f39c12'}; font-weight:bold;">${b.status}</td>
+                <td>
+                    <span style="color:${b.status === 'PAID' ? '#2ecc71' : '#f39c12'}; font-weight:bold;">${b.status}</span>
+                    ${b.status === 'PAID' ? `<br><button onclick="openTicketQrModal('${b.reference_code}')" style="margin-top:6px; padding:5px 10px; background:#2c3e50; color:white; border:none; border-radius:4px; cursor:pointer; font-size:0.85em;">📱 View QR Pass</button>` : ''}
+                </td>
             </tr>
         `).join('');
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Connection failure: ${err.message}</td></tr>`;
     }
 }
+
+window.openTicketQrModal = async function(refCode) {
+    try {
+        const response = await fetch(`/api/bookings/${refCode}/qr-payload`, {
+            headers: { 'Authorization': `Bearer ${sessionToken}` }
+        });
+        const data = await response.json();
+        if (!data.success) return alert(`❌ ${data.message}`);
+
+        document.getElementById('qr-raw-payload').value = data.qrPayload;
+        document.getElementById('qr-code-image').src = `https://qrserver.com{encodeURIComponent(data.qrPayload)}`;
+        document.getElementById('qr-modal').style.display = 'flex';
+    } catch (err) {
+        alert(`Error loading QR pass: ${err.message}`);
+    }
+};
+
+window.submitStaffScan = async function() {
+    const qrPayload = document.getElementById('scan-payload-input').value.trim();
+    const banner = document.getElementById('scan-result-banner');
+    if (!qrPayload) return alert('Please paste a signed QR ticket payload first.');
+
+    try {
+        const response = await fetch('/api/staff/check-in', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionToken}`
+            },
+            body: JSON.stringify({ qrPayload })
+        });
+        const data = await response.json();
+
+        banner.style.display = 'block';
+        if (data.success) {
+            banner.style.backgroundColor = '#d4edda';
+            banner.style.color = '#155724';
+            banner.innerText = data.message;
+        } else {
+            banner.style.backgroundColor = '#f8d7da';
+            banner.style.color = '#721c24';
+            banner.innerText = data.message;
+        }
+    } catch (err) {
+        alert(`Scanner network error: ${err.message}`);
+    }
+};
 
 async function fetchOrganizerManagementDashboard() {
     const tbody = document.getElementById('organizer-events-body');

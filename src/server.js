@@ -2,6 +2,8 @@
 import http from 'node:http';
 import { initializeDatabaseSchema, db } from '../database.js'; 
 import { createApp } from './http/app.js';
+import { CheckInService } from './services/checkInService.js';
+import { CryptographicTicketSigner } from './domain/qr.js';
 import { config } from './config.js';
 
 // Import our secure Enterprise Service Layers
@@ -74,8 +76,8 @@ app.post('/api/bookings', (req, res) => {
     const attendeeId = req.user ? req.user.id : null; 
 
     const orderResult = BookingService.registerBooking(eventId, tierName, attendeeName, quantity, attendeeId);
-    if (!orderResult.success) {
-        return sendJsonError(res, 400, orderResult.reason, 'Reservation booking rejected');
+        if (!orderResult.success) {
+        return sendJsonError(res, 400, orderResult.reason, orderResult.message || 'Reservation booking rejected');
     }
     res.statusCode = 201;
     res.end(JSON.stringify({ success: true, booking: orderResult.booking }));
@@ -179,9 +181,6 @@ app.post('/api/jobs/purge-expired-holds', (req, res) => {
     const counts = BookingService.purgeExpiredUnpaidHolds();
     res.end(JSON.stringify({ success: true, purgedCount: counts }));
 });
-
-import { CheckInService } from './services/checkInService.js';
-import { CryptographicTicketSigner } from './domain/qr.js';
 
 // Endpoint for Attendees to view their verified signed verification packet string
 app.get('/api/bookings/:refCode/qr-payload', (req, res) => {

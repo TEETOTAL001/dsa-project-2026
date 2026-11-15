@@ -38,13 +38,14 @@ export const SQLiteEventRepository = {
     },
 
     findTiersByEventId(eventId) {
-        return db.prepare('SELECT * FROM ticket_tiers WHERE event_id = ?').all();
+        return db.prepare('SELECT * FROM ticket_tiers WHERE event_id = ?').all(eventId);
     },
 
     findByOrganizerId(organizerId) {
-        return db.prepare('SELECT * FROM events WHERE owner_id = ?').all();
+        return db.prepare('SELECT * FROM events WHERE owner_id = ?').all(organizerId);
     }
 };
+
 
 export const SQLiteBookingRepository = {
     findTier(eventId, tierName) {

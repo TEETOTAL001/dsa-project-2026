@@ -16,5 +16,12 @@ export function initializeDatabaseSchema() {
 
     // 3. Execute the schema tables template straight onto your SQLite engine instance
     db.exec(sqlQueries);
+
+    try {
+        db.exec('ALTER TABLE bookings ADD COLUMN checked_in INTEGER DEFAULT 0;');
+    } catch (e) {
+    // Column already exists
+    }
+
     console.log("Relational tables schema structural mapping completed perfectly! ✅");
 }

@@ -136,6 +136,36 @@
                 <tbody id="organizer-events-body"></tbody>
             </table>
         </div>
+
+        <!-- 5. STAFF GATE CHECK-IN VIEW -->
+        <div id="staff-view" class="view-section">
+            <div class="auth-card" style="max-width: 500px; border-top-color: #2ecc71;">
+                <h3>🛂 Staff Gate Check-In Scanner</h3>
+                <p style="color:#555; font-size:0.95em; text-align:center;">Paste or scan an attendee's signed QR ticket payload below to verify admission.</p>
+                <div class="form-group">
+                    <label for="scan-payload-input">Signed QR Ticket Payload</label>
+                    <input type="text" id="scan-payload-input" placeholder="e.g. REF-1234.a9f8e7...">
+                </div>
+                <button class="btn-action btn-success" onclick="submitStaffScan()">Verify & Admit Attendee</button>
+                <div id="scan-result-banner" style="display:none; margin-top:20px; padding:15px; border-radius:6px; font-weight:bold; text-align:center;"></div>
+            </div>
+        </div>
+       </div>
+
+       <!-- QR PASS DISPLAY MODAL (FOR ATTENDEES) -->
+       <div id="qr-modal" class="modal">
+           <div class="modal-content" style="text-align:center;">
+               <h3 style="margin-top:0;">🎟️ Verified Entry QR Pass</h3>
+               <p style="color:#555; font-size:0.9em;">Present this signed ticket token to gate staff for entry.</p>
+               <img id="qr-code-image" alt="Ticket QR Code" style="margin: 15px auto; display:block; border: 4px solid #2c3e50; border-radius: 8px; padding: 8px; background: white;" />
+               <div class="form-group" style="text-align:left;">
+                   <label>Raw Signed Payload (Copy for Gate Scanner Demo):</label>
+                   <input type="text" id="qr-raw-payload" readonly onclick="this.select()" style="background:#f8fafc; font-family:monospace; font-size:0.85em;">
+               </div>
+               <button class="btn-action" style="background-color:#7f8c8d;" onclick="document.getElementById('qr-modal').style.display='none'">Close Pass</button>
+           </div>
+       </div>
+
     </div>
 
     <!-- CHECKOUT MODAL OVERLAY -->
