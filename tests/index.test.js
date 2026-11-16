@@ -127,7 +127,10 @@ test('Build 8: Refund Boundaries - Calculate 100% refund amount when event is > 
     SystemClock.reset();
     db.exec("DELETE FROM bookings; DELETE FROM ticket_tiers; DELETE FROM events;");
     
-    db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E-REF1', 'Future Fest', 'V1', 'City1', '2026-11-30', 'published')").run();
+    // Dynamically set the event date 30 days into the future so it never expires
+    const futureDate = new Date(SystemClock.now().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    db.prepare("INSERT INTO events (id, title, venue, city, startsAt, status) VALUES ('E-REF1', 'Future Fest', 'V1', 'City1', ?, 'published')").run(futureDate);
     db.prepare("INSERT INTO ticket_tiers (event_id, name, price_in_cents, capacity, tickets_sold) VALUES ('E-REF1', 'VIP', 10000, 10, 1)").run();
     
     db.prepare(`
