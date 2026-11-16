@@ -215,15 +215,23 @@
                 <input type="date" id="evt-date">
             </div>
 
-            <h4 style="margin: 15px 0 5px 0;">Configure Standard Ticket Tier</h4>
+            <h4 style="margin: 15px 0 5px 0;">Configure Ticket Tiers</h4>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div class="form-group">
-                    <label for="evt-tier-price">Price (in whole Cents)</label>
+                    <label for="evt-tier-price">Regular Price (Cents)</label>
                     <input type="number" id="evt-tier-price" value="5000">
                 </div>
                 <div class="form-group">
-                    <label for="evt-tier-cap">Capacity Limit</label>
+                    <label for="evt-tier-cap">Regular Capacity</label>
                     <input type="number" id="evt-tier-cap" value="100">
+                </div>
+                <div class="form-group">
+                    <label for="evt-vip-price">VIP Price (Cents)</label>
+                    <input type="number" id="evt-vip-price" value="15000">
+                </div>
+                <div class="form-group">
+                    <label for="evt-vip-cap">VIP Capacity</label>
+                    <input type="number" id="evt-vip-cap" value="20">
                 </div>
             </div>
 

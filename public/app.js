@@ -285,9 +285,20 @@ window.submitCreateEventForm = async function() {
 
     const eventPayload = {
         id, title, venue, city, startsAt,
-        tiers: [{ name: 'Standard General', priceInCents: price, capacity: capacity }]
-    };
+        tiers: [
+            {
+                name: 'Regular',
+                priceInCents: parseInt(document.getElementById('evt-tier-price').value, 10) || 5000,
+                capacity: parseInt(document.getElementById('evt-tier-cap').value, 10) || 100
+            },
+            {
+                name: 'VIP Lounge',
+                priceInCents: parseInt(document.getElementById('evt-vip-price').value, 10) || 15000,
+                capacity: parseInt(document.getElementById('evt-vip-cap').value, 10) || 20
+            }
+        ]
 
+    };
     try {
         const response = await fetch('/api/events', {
             method: 'POST',
